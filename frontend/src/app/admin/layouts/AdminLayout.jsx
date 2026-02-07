@@ -91,12 +91,14 @@ const AdminLayout = () => {
                 animate={{ width: isSidebarOpen ? 260 : 80 }}
                 className="bg-black text-white flex flex-col h-full border-r border-gray-800 shadow-2xl z-20 transition-all duration-300 relative"
             >
-                <div className="py-2 flex items-center justify-center bg-white border-b border-gray-800 transition-all duration-300">
-                    <img
-                        src={logo}
-                        alt="Rukkoo.in"
-                        className={`object-contain transition-all duration-300 ${isSidebarOpen ? 'h-20 w-auto' : 'h-10 w-10'}`}
-                    />
+                <div className={`py-6 flex flex-col items-center justify-center bg-white border-b border-gray-800 transition-all duration-300 ${!isSidebarOpen && 'py-4'}`}>
+                    <div className="flex flex-col items-start">
+                        <div className={`font-black tracking-tighter flex items-center transition-all duration-300 ${isSidebarOpen ? 'text-2xl' : 'text-[8px]'}`}>
+                            <span className="text-slate-900">STAY</span>
+                            <span className="text-teal-600">NOW</span>
+                        </div>
+                        {isSidebarOpen && <div className="w-8 h-1 bg-teal-600 rounded-full -mt-1 ml-0.5"></div>}
+                    </div>
                 </div>
 
                 {/* Navigation */}
@@ -154,7 +156,7 @@ const AdminLayout = () => {
                 <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm z-10 shrink-0">
                     <div className="flex items-center gap-4 flex-1">
                         <h1 className="text-xl font-bold text-gray-800">
-                            Rukkoo.in Admin
+                            Stay Now Admin
                         </h1>
                         <div className="hidden md:flex items-center relative max-w-md w-full ml-8">
                             <Search size={16} className="absolute left-3 text-gray-400" />

@@ -74,14 +74,14 @@ const HeroSection = () => {
                 </button>
 
                 {/* Logo */}
-                <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="flex flex-col items-center leading-none">
-                        <span className="text-xl font-black tracking-tighter text-[#111827] flex items-center gap-0.5">
-                            STAY<span className="text-emerald-600">NOW</span>
-                        </span>
-                        <div className="h-0.5 w-6 bg-emerald-600 rounded-full"></div>
-                    </div>
+                <div className="flex flex-col items-start leading-none ml-3">
+                    <span className="text-xl font-black tracking-tighter text-slate-900 flex items-center gap-0.5">
+                        STAY<span className="text-teal-600">NOW</span>
+                    </span>
+                    <div className="h-1 w-6 bg-teal-600 rounded-full"></div>
                 </div>
+
+                <div className="flex-1" />
 
                 {/* Wallet Balance Display */}
                 <button

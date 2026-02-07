@@ -99,7 +99,7 @@ const AdminLogin = () => {
                         transition={{ type: "spring", delay: 0.2 }}
                         className="inline-block mb-4"
                     >
-                        <img src={logo} alt="Rukkoo.in Admin" className="w-32 h-auto filter brightness-0 invert" />
+                        <img src={logo} alt="Stay Now Admin" className="w-32 h-auto filter brightness-0 invert" />
                     </motion.div>
                     <h1 className="text-3xl font-bold text-white">Admin Portal</h1>
                     <p className="text-gray-400 mt-2">Secure access to platform management</p>
@@ -126,7 +126,7 @@ const AdminLogin = () => {
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="admin@rukkoo.in"
+                                    placeholder="admin@staynow.in"
                                     className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 text-white placeholder-gray-400 rounded-xl focus:ring-2 focus:ring-white/50 focus:border-transparent outline-none transition-all"
                                     required
                                 />
@@ -187,8 +187,8 @@ const AdminLogin = () => {
                     {/* Demo Credentials */}
                     <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                         <p className="text-xs text-blue-200 font-medium mb-2">Demo Credentials:</p>
-                        <p className="text-xs text-gray-300 font-mono">Email: admin@rukkoo.in</p>
-                        <p className="text-xs text-gray-300 font-mono">Password: admin123</p>
+                        <p className="text-xs text-gray-300 font-mono">Email: Nowstayindia@gmail.com</p>
+                        <p className="text-xs text-gray-300 font-mono">Password: SumeeT@2020</p>
                     </div>
                 </motion.div>
 
