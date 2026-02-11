@@ -151,8 +151,9 @@ const PropertyDetailsPage = () => {
             maxAdults: rt.maxAdults,
             maxChildren: rt.maxChildren,
             images: rt.images || [],
-            pricing: { basePrice: rt.pricePerNight, extraAdultPrice: rt.extraAdultPrice, extraChildPrice: rt.extraChildPrice },
-            inventoryType: rt.inventoryType || (['Hostel', 'PG'].includes(p.propertyType) ? 'bed' : 'room')
+            inventoryType: rt.inventoryType || (['Hostel', 'PG'].includes(p.propertyType) ? 'bed' : 'room'),
+            roomCategory: rt.roomCategory,
+            bathroomType: rt.bathroomType
           })),
           policies: {
             checkInTime: p.checkInTime,
@@ -322,20 +323,26 @@ const PropertyDetailsPage = () => {
   const isWholeUnit = propertyType === 'Villa' || (['Homestay', 'Apartment'].includes(propertyType) && !hasInventory);
 
   const getNightBreakup = (room) => {
-    if (!room || !room.pricing) {
-      return { nights: 0, weekdayNights: 0, weekendNights: 0, perNight: getRoomPrice(room) };
+    if (!room) {
+      return { nights: 0, weekdayNights: 0, weekendNights: 0, perNight: 0 };
     }
-    const { basePrice, weekendPrice } = room.pricing;
+
+    const pricing = room.pricing || {};
+    const { basePrice, weekendPrice } = pricing;
+    const fallbackPrice = getRoomPrice(room);
+
     if (!dates.checkIn || !dates.checkOut) {
-      const base = typeof basePrice === 'number' ? basePrice : (typeof weekendPrice === 'number' ? weekendPrice : getRoomPrice(room));
+      const base = typeof basePrice === 'number' ? basePrice : (typeof weekendPrice === 'number' ? weekendPrice : fallbackPrice);
       return { nights: 0, weekdayNights: 0, weekendNights: 0, perNight: base };
     }
+
     const start = new Date(dates.checkIn);
     const end = new Date(dates.checkOut);
     if (isNaN(start) || isNaN(end) || end <= start) {
-      const base = typeof basePrice === 'number' ? basePrice : (typeof weekendPrice === 'number' ? weekendPrice : getRoomPrice(room));
+      const base = typeof basePrice === 'number' ? basePrice : (typeof weekendPrice === 'number' ? weekendPrice : fallbackPrice);
       return { nights: 0, weekdayNights: 0, weekendNights: 0, perNight: base };
     }
+
     let current = new Date(start);
     let nights = 0;
     let weekdayNights = 0;
@@ -344,14 +351,14 @@ const PropertyDetailsPage = () => {
     while (current < end) {
       const day = current.getDay();
       const isWeekendDay = day === 5 || day === 6;
-      const dayPrice = isWeekendDay && typeof weekendPrice === 'number' ? weekendPrice : (typeof basePrice === 'number' ? basePrice : getRoomPrice(room));
-      total += dayPrice;
+      const dayPrice = isWeekendDay && typeof weekendPrice === 'number' ? weekendPrice : (typeof basePrice === 'number' ? basePrice : fallbackPrice);
+      total += (dayPrice || 0);
       nights += 1;
       if (isWeekendDay) weekendNights += 1;
       else weekdayNights += 1;
       current.setDate(current.getDate() + 1);
     }
-    const perNight = nights > 0 ? Math.round(total / nights) : getRoomPrice(room);
+    const perNight = nights > 0 ? Math.round(total / nights) : fallbackPrice;
     return { nights, weekdayNights, weekendNights, perNight };
   };
 
@@ -405,7 +412,7 @@ const PropertyDetailsPage = () => {
   };
 
   const getUnitLabel = () => {
-    if (isBedBased) return 'Beds';
+    if (propertyType === 'Tent') return 'Tents';
     if (propertyType === 'Homestay' || propertyType === 'Villa') return 'Units';
     return 'Rooms';
   };
@@ -868,7 +875,7 @@ const PropertyDetailsPage = () => {
           {!isWholeUnit && inventory && inventory.length > 0 && (
             <div className="mb-8">
               <h2 className="text-lg font-bold text-textDark mb-4">
-                {isBedBased ? 'Choose your Bed/Room' : 'Choose your room'}
+                {isBedBased ? 'Choose your Bed/Room' : propertyType === 'Tent' ? 'Choose your tent' : 'Choose your room'}
               </h2>
               <div className="grid md:grid-cols-2 gap-4">
                 {inventory.map((room) => (
@@ -903,7 +910,17 @@ const PropertyDetailsPage = () => {
                         ))}
                       </div>
                     )}
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-1.5 flex-wrap">
+                      {room.roomCategory && (
+                        <span className="text-[10px] bg-surface/10 text-surface px-2 py-0.5 rounded font-bold uppercase tracking-tighter">
+                          {room.roomCategory}
+                        </span>
+                      )}
+                      {room.bathroomType && (
+                        <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold uppercase tracking-tighter">
+                          {room.bathroomType}
+                        </span>
+                      )}
                       {room.amenities?.filter(a => a && typeof a === 'string' && a.trim()).slice(0, 3).map((am, i) => (
                         <span key={i} className="text-[10px] bg-gray-100 px-2 py-1 rounded-full text-gray-600">{am}</span>
                       ))}
@@ -1104,14 +1121,14 @@ const PropertyDetailsPage = () => {
                   <Clock size={18} className="text-surface" />
                   <div>
                     <span className="font-semibold block text-textDark">Check-in</span>
-                    <span>{policies.checkInTime || '12:00 PM'}</span>
+                    <span>{policies.checkInTime ? (policies.checkInTime.toString().includes(':') ? policies.checkInTime : `${policies.checkInTime}:00 AM`) : '12:00 PM'}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Clock size={18} className="text-surface" />
                   <div>
                     <span className="font-semibold block text-textDark">Check-out</span>
-                    <span>{policies.checkOutTime || '11:00 AM'}</span>
+                    <span>{policies.checkOutTime ? (policies.checkOutTime.toString().includes(':') ? policies.checkOutTime : `${policies.checkOutTime}:00 AM`) : '11:00 AM'}</span>
                   </div>
                 </div>
 

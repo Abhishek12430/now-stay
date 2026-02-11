@@ -138,7 +138,7 @@ const HotelLoginPage = () => {
                 <div className="flex items-center justify-center">
                     <div className="flex flex-col items-center leading-tight">
                         <span className="text-4xl font-black tracking-tighter text-[#111827] flex items-center gap-1">
-                            STAY<span className="text-[#004F4D]">NOW</span>
+                            NOW<span className="text-[#004F4D]">STAY</span>
                         </span>
                         <div className="h-1 w-10 bg-[#004F4D] rounded-full -mt-0.5"></div>
                     </div>

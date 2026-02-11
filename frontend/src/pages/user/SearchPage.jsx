@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { propertyService } from '../../services/propertyService';
-import { userService } from '../../services/apiService';
+import { userService, api } from '../../services/apiService';
 import { MapPin, Search, Filter, Star, IndianRupee, Navigation, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import PropertyCard from '../../components/user/PropertyCard';
+import PropertyTypeFilter from '../../components/user/PropertyTypeFilter';
 const SearchPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -28,6 +29,37 @@ const SearchPage = () => {
     });
 
     const [location, setLocation] = useState(null); // { lat, lng }
+    const [propertyTypes, setPropertyTypes] = useState([
+        { id: 'all', label: 'All' },
+        { id: 'hotel', label: 'Hotel' },
+        { id: 'villa', label: 'Villa' },
+        { id: 'resort', label: 'Resort' },
+        { id: 'homestay', label: 'Homestay' },
+        { id: 'pg', label: 'PG' },
+        { id: 'hostel', label: 'Hostel' }
+    ]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await api.get('/categories/active');
+                if (res.data) {
+                    const dynamic = res.data.map(cat => ({
+                        id: cat._id,
+                        label: cat.displayName,
+                        isDynamic: true
+                    }));
+                    setPropertyTypes(prev => {
+                        const staticTypes = prev.filter(p => !p.isDynamic);
+                        return [...staticTypes, ...dynamic];
+                    });
+                }
+            } catch (err) {
+                console.warn("Failed to fetch dynamic categories:", err);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     useEffect(() => {
         fetchProperties();
@@ -118,7 +150,6 @@ const SearchPage = () => {
         }
     };
 
-    const propertyTypes = ['All', 'Hotel', 'Villa', 'Resort', 'Homestay', 'PG', 'Hostel'];
     const sortOptions = [
         { label: 'Newest', value: 'newest' },
         { label: 'Price: Low to High', value: 'price_low' },
@@ -199,6 +230,26 @@ const SearchPage = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Horizontal Dynamic Tabs */}
+                <div className="mt-3 -mx-4 border-t border-gray-50">
+                    <PropertyTypeFilter
+                        selectedType={Array.isArray(filters.type) ? filters.type[0] : filters.type}
+                        onSelectType={(type) => {
+                            const newType = type === 'All' ? 'all' : type;
+                            setFilters(prev => ({ ...prev, type: newType }));
+
+                            // Immediately apply and search
+                            const params = { ...Object.fromEntries([...searchParams]) };
+                            if (newType === 'all') {
+                                delete params.type;
+                            } else {
+                                params.type = newType;
+                            }
+                            setSearchParams(params);
+                        }}
+                    />
+                </div>
             </div>
 
             {/* Content Area */}
@@ -296,13 +347,20 @@ const SearchPage = () => {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => {
-                                    setFilters(prev => ({
-                                        ...prev,
+                                    const newFilters = {
+                                        ...filters,
                                         type: 'all',
                                         minPrice: '',
                                         maxPrice: '',
                                         amenities: []
-                                    }));
+                                    };
+                                    setFilters(newFilters);
+
+                                    // Apply core params immediately on clear
+                                    const params = {};
+                                    if (filters.search) params.search = filters.search;
+                                    if (filters.sort) params.sort = filters.sort;
+                                    setSearchParams(params);
                                 }}
                                 className="text-xs font-bold text-red-500 hover:text-red-600"
                             >
@@ -320,14 +378,14 @@ const SearchPage = () => {
                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Property Type</label>
                             <div className="grid grid-cols-3 gap-2">
                                 {propertyTypes.map(type => {
-                                    const typeValue = type === 'All' ? 'all' : type.toLowerCase();
+                                    const typeValue = type.id;
                                     const isSelected = typeValue === 'all'
                                         ? filters.type === 'all'
                                         : Array.isArray(filters.type) && filters.type.includes(typeValue);
 
                                     return (
                                         <button
-                                            key={type}
+                                            key={type.id}
                                             onClick={() => {
                                                 if (typeValue === 'all') {
                                                     updateFilter('type', 'all');
@@ -349,7 +407,7 @@ const SearchPage = () => {
                                                     ? 'bg-[#004F4D] text-white border-[#004F4D] shadow-sm'
                                                     : 'bg-white text-gray-500 border-gray-100 hover:border-gray-200'}`}
                                         >
-                                            {type}
+                                            {type.label}
                                         </button>
                                     );
                                 })}

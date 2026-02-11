@@ -61,8 +61,8 @@ const PropertyCard = ({ property, data, className = "", isSaved: initialIsSaved 
     // Remove backticks, single quotes, double quotes, and surrounding whitespace
     return url.replace(/[`'"]/g, '').trim();
   };
-
   const displayName = name || item.propertyName || 'Untitled';
+  const dynamicCatName = item.dynamicCategory?.displayName || item.dynamicCategory?.name;
 
   const typeRaw = (propertyType || item.propertyType || '').toString();
   const normalizedType = typeRaw
@@ -70,8 +70,9 @@ const PropertyCard = ({ property, data, className = "", isSaved: initialIsSaved 
       ? 'PG'
       : typeRaw.charAt(0).toUpperCase() + typeRaw.slice(1).toLowerCase()
     : '';
-  const typeForBadge = normalizedType || typeRaw;
-  const typeLabel = typeForBadge ? typeForBadge.toString().toUpperCase() : '';
+
+  const typeLabel = dynamicCatName ? dynamicCatName.toUpperCase() : (normalizedType || typeRaw).toString().toUpperCase();
+
 
   // Improved Rating Logic
   const rawRating =

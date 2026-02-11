@@ -41,7 +41,7 @@ const OverviewTab = ({ hotel }) => (
                         <span className="font-bold text-gray-900">{hotel.createdAt ? new Date(hotel.createdAt).toLocaleDateString() : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-gray-500 font-bold uppercase text-[10px]">Total Room Types</span>
+                        <span className="text-gray-500 font-bold uppercase text-[10px]">{hotel.propertyType === 'tent' ? 'Total Tent Types' : 'Total Room Types'}</span>
                         <span className="font-bold text-gray-900">{hotel.rooms?.length || 0}</span>
                     </div>
                     <div className="flex justify-between">
@@ -322,7 +322,7 @@ const RoomsTab = ({ rooms }) => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-900 uppercase">Room Inventory</h3>
+                <h3 className="text-lg font-bold text-gray-900 uppercase">{rooms?.[0]?.propertyType === 'tent' || rooms?.[0]?.inventoryType === 'tent' ? 'Tent Inventory' : 'Room Inventory'}</h3>
             </div>
 
             <div className="space-y-4">
@@ -346,7 +346,7 @@ const RoomsTab = ({ rooms }) => {
                                         <h4 className="font-bold text-gray-900 text-lg uppercase tracking-tight">{room.name}</h4>
                                         <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-2 text-[10px] font-bold uppercase text-gray-400">
                                             <span className="flex items-center gap-1"><Users size={12} /> Max {room.maxAdults} Adults, {room.maxChildren} Child</span>
-                                            <span className="flex items-center gap-1"><Building2 size={12} /> {room.totalInventory} Rooms Total</span>
+                                            <span className="flex items-center gap-1"><Building2 size={12} /> {room.totalInventory} {room.inventoryType === 'tent' || room.propertyType === 'tent' ? 'Tents' : 'Rooms'} Total</span>
                                             <span className="flex items-center gap-1 text-green-600"><ShieldCheck size={12} /> {room.inventoryType}</span>
                                         </div>
                                     </div>
@@ -428,7 +428,7 @@ const RoomsTab = ({ rooms }) => {
 
                                                 {/* Room Images */}
                                                 <div>
-                                                    <h5 className="text-[10px] font-bold uppercase text-gray-500 mb-3 block">Room Photos</h5>
+                                                    <h5 className="text-[10px] font-bold uppercase text-gray-500 mb-3 block">{room.inventoryType === 'tent' || room.propertyType === 'tent' ? 'Tent Photos' : 'Room Photos'}</h5>
                                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                                         {room.images && room.images.map((img, idx) => (
                                                             <div key={idx} className="aspect-video bg-gray-200 rounded-lg overflow-hidden border border-gray-200 group relative">
@@ -614,8 +614,8 @@ const AdminHotelDetail = () => {
     if (!hotel) return (
         <div className="text-center py-20">
             <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900">Hotel Not Found</h2>
-            <Link to="/admin/hotels" className="mt-6 inline-block text-black font-bold uppercase text-xs border-b-2 border-black pb-1">Back to Hotels</Link>
+            <h2 className="text-2xl font-bold text-gray-900">Property Not Found</h2>
+            <Link to="/admin/hotels" className="mt-6 inline-block text-black font-bold uppercase text-xs border-b-2 border-black pb-1">Back to Properties</Link>
         </div>
     );
 
@@ -623,7 +623,7 @@ const AdminHotelDetail = () => {
         { id: 'overview', label: 'Overview', icon: Building2 },
         { id: 'gallery', label: 'Full Gallery', icon: ImageIcon },
         { id: 'documents', label: 'KYC Documents', icon: ShieldCheck },
-        { id: 'rooms', label: 'Rooms & Pricing', icon: Bed },
+        { id: 'rooms', label: hotel?.propertyType === 'tent' ? 'Tents & Pricing' : 'Rooms & Pricing', icon: Bed },
         { id: 'bookings', label: 'Booking History', icon: Calendar },
     ];
 
@@ -636,7 +636,7 @@ const AdminHotelDetail = () => {
             />
 
             <div className="flex items-center gap-2 text-[10px] font-bold uppercase text-gray-500 mb-2">
-                <Link to="/admin/hotels" className="hover:text-black transition-colors">Hotels</Link>
+                <Link to="/admin/hotels" className="hover:text-black transition-colors">Properties</Link>
                 <span>/</span>
                 <span className="text-black font-bold">{hotel.propertyName}</span>
             </div>

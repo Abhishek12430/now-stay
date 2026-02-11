@@ -36,7 +36,7 @@ const bookingSchema = new mongoose.Schema({
 
   propertyType: {
     type: String,
-    enum: ["villa", "resort", "hotel", "hostel", "pg", "homestay"],
+    enum: ["villa", "resort", "hotel", "hostel", "pg", "homestay", "tent"],
     required: true
   },
 
@@ -49,7 +49,7 @@ const bookingSchema = new mongoose.Schema({
 
   bookingUnit: {
     type: String,
-    enum: ["entire", "room", "bed"],
+    enum: ["entire", "room", "bed", "tent"],
     required: true
   },
 

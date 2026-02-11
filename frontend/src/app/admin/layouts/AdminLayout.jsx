@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, Users, Building2, Calendar, Wallet,
-    Settings, Bell, Search, LogOut, Menu, X, DollarSign, ClipboardCheck, Star, Tag, FileText, MessageSquare, CircleHelp, Home
+    Settings, Bell, Search, LogOut, Menu, X, DollarSign, ClipboardCheck, Star, Tag, FileText, MessageSquare, CircleHelp, Home, LayoutGrid
 } from 'lucide-react';
 
 import logo from '../../../assets/rokologin-removebg-preview.png';
@@ -72,6 +72,7 @@ const AdminLayout = () => {
         { icon: Users, label: 'User Management', path: '/admin/users' },
         { icon: Building2, label: 'Partner Management', path: '/admin/partners' },
         { icon: Home, label: 'Property Management', path: '/admin/properties' },
+        { icon: LayoutGrid, label: 'Categories', path: '/admin/categories' },
         { icon: Calendar, label: 'Bookings', path: '/admin/bookings' },
         { icon: Bell, label: 'Notifications', path: '/admin/notifications', badge: unreadCount > 0 },
         { icon: Wallet, label: 'Finance & Payouts', path: '/admin/finance' },
@@ -94,8 +95,8 @@ const AdminLayout = () => {
                 <div className={`py-6 flex flex-col items-center justify-center bg-white border-b border-gray-800 transition-all duration-300 ${!isSidebarOpen && 'py-4'}`}>
                     <div className="flex flex-col items-start">
                         <div className={`font-black tracking-tighter flex items-center transition-all duration-300 ${isSidebarOpen ? 'text-2xl' : 'text-[8px]'}`}>
-                            <span className="text-slate-900">STAY</span>
-                            <span className="text-teal-600">NOW</span>
+                            <span className="text-slate-900">NOW</span>
+                            <span className="text-teal-600">STAY</span>
                         </div>
                         {isSidebarOpen && <div className="w-8 h-1 bg-teal-600 rounded-full -mt-1 ml-0.5"></div>}
                     </div>

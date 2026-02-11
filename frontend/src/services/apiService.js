@@ -230,9 +230,10 @@ export const bookingService = {
 
 // Property Services (New)
 export const propertyService = {
-  create: async (data) => {
+  createProperty: async (propertyData) => {
     try {
-      const response = await api.post('/properties', data);
+      // Ensure structureDetails is included if present
+      const response = await api.post('/properties', propertyData);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

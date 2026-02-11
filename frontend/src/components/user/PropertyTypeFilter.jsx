@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   Home,
@@ -6,11 +6,14 @@ import {
   Hotel,
   Building,
   BedDouble,
-  LayoutGrid
+  LayoutGrid,
+  Tent
 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { categoryService } from '../../services/categoryService';
 
 const PropertyTypeFilter = ({ selectedType, onSelectType }) => {
-  const types = [
+  const STATIC_TYPES = [
     { id: 'All', label: 'All', icon: LayoutGrid },
     { id: 'Hotel', label: 'Hotel', icon: Building2 },
     { id: 'Villa', label: 'Villa', icon: Home },
@@ -18,11 +21,39 @@ const PropertyTypeFilter = ({ selectedType, onSelectType }) => {
     { id: 'Homestay', label: 'Homestay', icon: Hotel },
     { id: 'Hostel', label: 'Hostel', icon: Building },
     { id: 'PG', label: 'PG', icon: BedDouble },
+    { id: 'tent', label: 'Tent', icon: Tent },
   ];
+
+  const [allTypes, setAllTypes] = useState(STATIC_TYPES);
+
+  useEffect(() => {
+    const fetchDynamicCategories = async () => {
+      try {
+        const categories = await categoryService.getActiveCategories();
+
+        const dynamicTypes = categories
+          .filter(cat => cat.displayName.toLowerCase() !== 'tent' && cat.name.toLowerCase() !== 'tent')
+          .map(cat => ({
+            id: cat._id,
+            label: cat.displayName,
+            icon: LucideIcons[cat.icon] || LucideIcons.HelpCircle,
+            isDynamic: true
+          }));
+
+        setAllTypes([...STATIC_TYPES, ...dynamicTypes]);
+      } catch (error) {
+        console.error("Error loading categories:", error);
+        // Fallback to static types
+        setAllTypes(STATIC_TYPES);
+      }
+    };
+
+    fetchDynamicCategories();
+  }, []);
 
   return (
     <div className="flex gap-4 overflow-x-auto px-5 py-4 no-scrollbar">
-      {types.map((type) => {
+      {allTypes.map((type) => {
         const Icon = type.icon;
         const isSelected = selectedType === type.id;
 

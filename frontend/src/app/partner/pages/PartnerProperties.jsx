@@ -48,6 +48,11 @@ const PartnerProperties = () => {
       navigate('/hotel/join-resort', { state: { property } });
     } else if (property.propertyType === 'homestay') {
       navigate('/hotel/join-homestay', { state: { property } });
+    } else if (property.propertyType === 'tent') {
+      navigate('/hotel/join-hotel', { state: { property } });
+    } else if (property.dynamicCategory) {
+      const catId = typeof property.dynamicCategory === 'object' ? property.dynamicCategory._id : property.dynamicCategory;
+      navigate(`/hotel/join-dynamic/${catId}`, { state: { property, categoryName: property.dynamicCategory?.displayName } });
     }
   };
 
@@ -122,9 +127,9 @@ const PartnerProperties = () => {
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                    {type.toUpperCase()}
+                    {list[0]?.dynamicCategory?.displayName || type.toUpperCase()}
                   </p>
-                  <p className="text-[11px] text-gray-500">{list.length} properties</p>
+                  <p className="text-[11px] text-gray-500">{list.length} {list.length === 1 ? 'property' : 'properties'}</p>
                 </div>
               </div>
               <div className="divide-y divide-gray-100">

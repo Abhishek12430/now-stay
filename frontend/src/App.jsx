@@ -66,6 +66,7 @@ const AdminLegalPages = React.lazy(() => import('./app/admin/pages/AdminLegalPag
 const AdminContactMessages = React.lazy(() => import('./app/admin/pages/AdminContactMessages'));
 const AdminNotifications = React.lazy(() => import('./app/admin/pages/AdminNotifications'));
 const AdminFaqs = React.lazy(() => import('./app/admin/pages/AdminFaqs'));
+const AdminCategories = React.lazy(() => import('./app/admin/pages/AdminCategories'));
 
 // Lazy Imports - Partner Pages
 const HotelLogin = React.lazy(() => import('./pages/auth/HotelLoginPage'));
@@ -77,6 +78,7 @@ const AddHostelWizard = React.lazy(() => import('./app/partner/pages/AddHostelWi
 const AddPGWizard = React.lazy(() => import('./app/partner/pages/AddPGWizard'));
 const AddResortWizard = React.lazy(() => import('./app/partner/pages/AddResortWizard'));
 const AddHomestayWizard = React.lazy(() => import('./app/partner/pages/AddHomestayWizard'));
+const AddDynamicWizard = React.lazy(() => import('./app/partner/pages/AddDynamicWizard'));
 const PartnerDashboard = React.lazy(() => import('./app/partner/pages/PartnerDashboard'));
 const PartnerBookings = React.lazy(() => import('./app/partner/pages/PartnerBookings'));
 const PartnerWallet = React.lazy(() => import('./app/partner/pages/PartnerWallet'));
@@ -406,6 +408,7 @@ function App() {
                 <Route path="join-villa" element={<AddVillaWizard />} />
                 <Route path="join-pg" element={<AddPGWizard />} />
                 <Route path="join-homestay" element={<AddHomestayWizard />} />
+                <Route path="join-dynamic/:categoryId" element={<AddDynamicWizard />} />
                 <Route path="partner-dashboard" element={<PartnerDashboard />} />
                 <Route path="dashboard" element={<PartnerDashboard />} />
 
@@ -458,6 +461,7 @@ function App() {
                 <Route path="offers" element={<AdminOffers />} />
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="faqs" element={<AdminFaqs />} />
+                <Route path="categories" element={<AdminCategories />} />
               </Route>
             </Route>
 

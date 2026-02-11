@@ -17,8 +17,21 @@ const propertySchema = new mongoose.Schema({
   contactNumber: { type: String },
   propertyType: {
     type: String,
-    enum: ["villa", "resort", "hotel", "hostel", "pg", "homestay"],
+    enum: ["villa", "resort", "hotel", "hostel", "pg", "homestay", "tent"],
     required: true
+  },
+
+  // Dynamic Category (Optional)
+  dynamicCategory: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "PropertyCategory",
+    default: null
+  },
+
+  // Flexible Category-Specific Details (Added for Tent/Glamping support)
+  structureDetails: {
+    type: Object,
+    default: {} // Stores: tentType, bathroomType, electricityInfo, etc.
   },
 
   pgType: {

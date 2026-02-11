@@ -137,7 +137,7 @@ const PartnerSidebar = ({ isOpen, onClose }) => {
                         <div className="flex items-center justify-between p-5 pb-2">
                             <div className="flex flex-col items-start leading-none">
                                 <span className="text-xl font-black tracking-tighter text-slate-900 flex items-center gap-0.5">
-                                    STAY<span className="text-teal-600">NOW</span>
+                                    NOW<span className="text-teal-600">STAY</span>
                                 </span>
                                 <div className="h-1 w-6 bg-teal-600 rounded-full mt-0.5"></div>
                             </div>

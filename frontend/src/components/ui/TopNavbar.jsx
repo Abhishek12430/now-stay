@@ -15,7 +15,7 @@ const TopNavbar = () => {
             <Link to="/">
                 <div className="flex flex-col items-start leading-tight group">
                     <span className="text-2xl font-black tracking-tighter text-gray-900 uppercase">
-                        Stay<span className="text-teal-600">Now</span>
+                        NOW<span className="text-teal-600">STAY</span>
                     </span>
                     <div className="h-0.5 w-6 bg-teal-600 rounded-full group-hover:w-full transition-all duration-300"></div>
                 </div>

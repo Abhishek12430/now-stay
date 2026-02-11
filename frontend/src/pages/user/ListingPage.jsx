@@ -4,7 +4,7 @@ import { ArrowLeft, Search, SlidersHorizontal, ChevronDown, X } from 'lucide-rea
 import { useNavigate, useLocation } from 'react-router-dom';
 import PropertyCard from '../../components/user/PropertyCard';
 import FilterBottomSheet from '../../components/modals/FilterBottomSheet';
-import { hotelService } from '../../services/apiService';
+import { hotelService, api } from '../../services/apiService';
 
 const ListingPage = () => {
     const navigate = useNavigate();
@@ -32,8 +32,25 @@ const ListingPage = () => {
     const [selectedFilters, setSelectedFilters] = useState([]);
     const [priceRange, setPriceRange] = useState([500, 15000]);
     const [isHighRated, setIsHighRated] = useState(false);
+    const [dynamicCategories, setDynamicCategories] = useState([]);
 
-    const filters = ["Recommended", "Price: Low to High", "Rating: 4.5+", "Budget", "Villas", "Hostels"];
+    const filters = useMemo(() => {
+        const base = ["Recommended", "Price: Low to High", "Rating: 4.5+", "Budget", "Villas", "Hostels"];
+        const dynamic = dynamicCategories.map(c => c.displayName);
+        return [...new Set([...base, ...dynamic])];
+    }, [dynamicCategories]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await api.get('/categories/active');
+                if (res.data) setDynamicCategories(res.data);
+            } catch (err) {
+                console.warn("ListingPage: Failed to fetch dynamic categories:", err);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     // Fetch Hotels from Backend
     useEffect(() => {
@@ -71,9 +88,16 @@ const ListingPage = () => {
             // 2. Tab Filter
             let matchesTab = true;
             if (activeFilter === "Rating: 4.5+") matchesTab = (hotel.rating || 0) >= 4.5;
-            if (activeFilter === "Budget") matchesTab = (hotel.startingPrice || 0) < 2000;
-            if (activeFilter === "Villas") matchesTab = hotel.propertyType === 'Villa';
-            if (activeFilter === "Hostels") matchesTab = hotel.propertyType === 'Hostel';
+            else if (activeFilter === "Budget") matchesTab = (hotel.startingPrice || 0) < 2000;
+            else if (activeFilter === "Villas") matchesTab = (hotel.propertyType || '').toLowerCase() === 'villa';
+            else if (activeFilter === "Hostels") matchesTab = (hotel.propertyType || '').toLowerCase() === 'hostel';
+            else {
+                // Check if it's a dynamic category
+                const dynamicCat = dynamicCategories.find(c => c.displayName === activeFilter);
+                if (dynamicCat) {
+                    matchesTab = String(hotel.dynamicCategory) === String(dynamicCat._id);
+                }
+            }
 
             // 3. Advanced Filters
             // Price Range

@@ -213,6 +213,10 @@ export const addRoomType = async (req, res) => {
       return res.status(400).json({ message: 'PG must have inventoryType="bed"' });
     }
 
+    if (property.propertyType === 'tent' && inventoryType !== 'tent') {
+      return res.status(400).json({ message: 'Tent/Campsite must have inventoryType="tent"' });
+    }
+
     // For Homestay, inventoryType can be 'room' or 'entire'
     if (property.propertyType === 'homestay' && !['room', 'entire'].includes(inventoryType)) {
       return res.status(400).json({ message: 'Homestay must have inventoryType="room" or "entire"' });
@@ -307,6 +311,9 @@ export const updateRoomType = async (req, res) => {
       }
       if (property.propertyType === 'pg' && roomType.inventoryType !== 'bed') {
         return res.status(400).json({ message: 'PG must have inventoryType="bed"' });
+      }
+      if (property.propertyType === 'tent' && roomType.inventoryType !== 'tent') {
+        return res.status(400).json({ message: 'Tent/Campsite must have inventoryType="tent"' });
       }
       if (property.propertyType === 'homestay' && !['room', 'entire'].includes(roomType.inventoryType)) {
         return res.status(400).json({ message: 'Homestay must have inventoryType="room" or "entire"' });
@@ -416,20 +423,41 @@ export const getPublicProperties = async (req, res) => {
     const matchConditions = {};
 
     if (type && type !== 'all') {
-      const typesList = type.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-      if (typesList.length > 0) {
-        matchConditions.propertyType = { $in: typesList };
+      const typesList = type.split(',').map(t => t.trim()).filter(Boolean);
+
+      const dynamicTypes = typesList.filter(t => mongoose.Types.ObjectId.isValid(t));
+      const staticTypes = typesList.filter(t => !mongoose.Types.ObjectId.isValid(t)).map(t => t.toLowerCase());
+
+      if (dynamicTypes.length > 0 && staticTypes.length > 0) {
+        matchConditions.$or = [
+          { propertyType: { $in: staticTypes } },
+          { dynamicCategory: { $in: dynamicTypes.map(id => new mongoose.Types.ObjectId(id)) } }
+        ];
+      } else if (dynamicTypes.length > 0) {
+        matchConditions.dynamicCategory = { $in: dynamicTypes.map(id => new mongoose.Types.ObjectId(id)) };
+      } else if (staticTypes.length > 0) {
+        matchConditions.propertyType = { $in: staticTypes };
       }
     }
 
     if (search) {
       const regex = new RegExp(search, 'i');
-      matchConditions.$or = [
+      const searchOr = [
         { propertyName: regex },
         { "address.city": regex },
         { "address.area": regex },
         { "address.fullAddress": regex }
       ];
+
+      if (matchConditions.$or) {
+        matchConditions.$and = [
+          { $or: matchConditions.$or },
+          { $or: searchOr }
+        ];
+        delete matchConditions.$or;
+      } else {
+        matchConditions.$or = searchOr;
+      }
     }
 
     if (amenities) {
@@ -499,8 +527,11 @@ export const getPublicProperties = async (req, res) => {
 
     // 6. Filter by Price Range
     const priceMatch = {};
-    // Only show properties that actually have available room types matching criteria
-    priceMatch.hasMatchingRooms = true;
+
+    // Only require rooms if filtering by price or guests
+    if (minPrice || maxPrice || guests) {
+      priceMatch.hasMatchingRooms = true;
+    }
 
     if (minPrice) {
       priceMatch.startingPrice = { ...priceMatch.startingPrice, $gte: parseInt(minPrice) };

@@ -162,7 +162,7 @@ const UserLogin = () => {
                     >
                         <div className="flex flex-col items-center">
                             <span className="text-4xl font-black tracking-tighter text-[#111827] flex items-center gap-1">
-                                STAY<span className="text-emerald-600">NOW</span>
+                                NOW<span className="text-emerald-600">STAY</span>
                             </span>
                             <div className="h-1 w-8 bg-emerald-600 rounded-full -mt-1 shadow-sm"></div>
                         </div>

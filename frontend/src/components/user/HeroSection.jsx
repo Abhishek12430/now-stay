@@ -76,7 +76,7 @@ const HeroSection = () => {
                 {/* Logo */}
                 <div className="flex flex-col items-start leading-none ml-3">
                     <span className="text-xl font-black tracking-tighter text-slate-900 flex items-center gap-0.5">
-                        STAY<span className="text-teal-600">NOW</span>
+                        NOW<span className="text-teal-600">STAY</span>
                     </span>
                     <div className="h-1 w-6 bg-teal-600 rounded-full"></div>
                 </div>

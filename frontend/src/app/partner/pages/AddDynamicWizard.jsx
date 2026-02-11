@@ -1,10 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { propertyService, hotelService } from '../../../services/apiService';
+import { categoryService } from '../../../services/categoryService';
 // Compression removed - Cloudinary handles optimization
-import { CheckCircle, FileText, Home, Image, Plus, Trash2, MapPin, Search, BedDouble, Wifi, Tv, Snowflake, Coffee, ShowerHead, ArrowLeft, ArrowRight, Clock, Loader2, Camera, X } from 'lucide-react';
+import { CheckCircle, FileText, Home, Image, Plus, Trash2, MapPin, Search, BedDouble, Wifi, Tv, Snowflake, Coffee, ShowerHead, ArrowLeft, ArrowRight, Clock, Loader2, Camera, X, Tent } from 'lucide-react';
 import logo from '../../../assets/rokologin-removebg-preview.png';
 import { isFlutterApp, openFlutterCamera } from '../../../utils/flutterBridge';
+
+// Tent/Camping Specific Constants
+const TENT_TYPES = ["Luxury Swiss Tent", "Dome Tent", "Safari Tent", "Camping Tent", "Glamping Pod"];
+const BATHROOM_TYPES = ["Attached (Private)", "Shared Complex", "Dry/Eco Toilet"];
+const TENT_AMENITIES = ["Bonfire", "BBQ", "Stargazing", "Jungle Safari", "Trekking Guide", "Outdoor Seating", "Caretaker", "Torch/Emergency Light"];
+const TENT_SAFETY = ["Fenced Compound", "Night Guard", "Wild Animal Safety", "First Aid Kit"];
 
 const REQUIRED_DOCS_HOTEL = [
   { type: "trade_license", name: "Trade License" },
@@ -23,7 +30,8 @@ const ROOM_AMENITIES = [
   { key: 'coffee', label: 'Tea/Coffee', icon: Coffee }
 ];
 
-const AddHotelWizard = () => {
+const AddDynamicWizard = () => {
+  const { categoryId } = useParams(); // Get dynamic category ID
   const navigate = useNavigate();
   const location = useLocation();
   const existingProperty = location.state?.property || null;
@@ -43,6 +51,30 @@ const AddHotelWizard = () => {
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [isFlutter, setIsFlutter] = useState(false);
 
+  // Tent Logic State
+  const [categoryName, setCategoryName] = useState('');
+  const isTent = categoryName.toLowerCase().includes('tent') || categoryName.toLowerCase().includes('camp');
+
+  useEffect(() => {
+    if (location.state?.categoryName) {
+      setCategoryName(location.state.categoryName);
+    } else if (categoryId) {
+      // Fallback: Fetch category name if not passed in state (e.g. page reload)
+      const fetchCategory = async () => {
+        try {
+          const categories = await categoryService.getActiveCategories();
+          const matched = categories.find(c => c._id === categoryId);
+          if (matched) {
+            setCategoryName(matched.displayName || matched.name);
+          }
+        } catch (err) {
+          console.error("Failed to fetch category details", err);
+        }
+      };
+      fetchCategory();
+    }
+  }, [location.state, categoryId]);
+
   useEffect(() => {
     setIsFlutter(isFlutterApp());
   }, []);
@@ -52,7 +84,6 @@ const AddHotelWizard = () => {
   const documentInputRefs = useRef([]);
 
   const [propertyForm, setPropertyForm] = useState({
-    propertyType: existingProperty?.propertyType || (location.pathname.includes('join-hotel') ? 'hotel' : ''),
     propertyName: '',
     description: '',
     shortDescription: '',
@@ -77,7 +108,7 @@ const AddHotelWizard = () => {
   const [originalRoomTypeIds, setOriginalRoomTypeIds] = useState([]);
 
   // --- Persistence Logic ---
-  const STORAGE_KEY = `rukko_hotel_wizard_draft_${existingProperty?._id || 'new'}`;
+  const STORAGE_KEY = `rukko_hotel_wizard_draft_${existingProperty?._id || (categoryId ? `dynamic_${categoryId}` : 'new')}`;
 
   // 1. Load from localStorage on mount
   useEffect(() => {
@@ -309,8 +340,8 @@ const AddHotelWizard = () => {
     setEditingRoomType({
       id: Date.now().toString() + Math.random().toString(36).slice(2),
       name: '',
-      inventoryType: 'room',
-      roomCategory: 'private',
+      inventoryType: isTent ? 'tent' : 'room',
+      roomCategory: isTent ? (TENT_TYPES[0] || 'Luxury Swiss Tent') : 'private',
       maxAdults: '',
       maxChildren: 0,
       totalInventory: '',
@@ -546,8 +577,7 @@ const AddHotelWizard = () => {
           contactNumber: prop.contactNumber || '',
           documents: docs.length
             ? docs.map(d => ({ type: d.type || d.name, name: d.name, fileUrl: d.fileUrl || '' }))
-            : REQUIRED_DOCS_HOTEL.map(d => ({ type: d.type, name: d.name, fileUrl: '' })),
-          propertyType: prop.propertyType || existingProperty?.propertyType || ''
+            : REQUIRED_DOCS_HOTEL.map(d => ({ type: d.type, name: d.name, fileUrl: '' }))
         });
         if (rts.length) {
           setRoomTypes(
@@ -555,7 +585,7 @@ const AddHotelWizard = () => {
               id: rt._id,
               backendId: rt._id,
               name: rt.name || '',
-              inventoryType: rt.inventoryType || ((prop.propertyType || existingProperty?.propertyType) === 'tent' ? 'tent' : 'room'),
+              inventoryType: rt.inventoryType || 'room',
               roomCategory: rt.roomCategory || 'private',
               maxAdults: rt.maxAdults ?? '',
               maxChildren: rt.maxChildren ?? '',
@@ -606,16 +636,16 @@ const AddHotelWizard = () => {
   const nextFromRoomTypes = () => {
     setError('');
     if (!roomTypes.length) {
-      setError(`At least one ${propertyForm.propertyType === 'tent' ? 'Tent' : 'Room'} Type required`);
+      setError('At least one RoomType required');
       return;
     }
     for (const rt of roomTypes) {
       if (!rt.name || !rt.pricePerNight) {
-        setError(`${propertyForm.propertyType === 'tent' ? 'Tent' : 'Room'} type name and price required`);
+        setError('Room type name and price required');
         return;
       }
       if (!rt.images || rt.images.filter(Boolean).length < 3) {
-        setError(`Each ${propertyForm.propertyType === 'tent' ? 'tent' : 'room'} type must have at least 3 images`);
+        setError('Each room type must have at least 3 images');
         return;
       }
     }
@@ -627,7 +657,8 @@ const AddHotelWizard = () => {
     setError('');
     try {
       const propertyPayload = {
-        propertyType: propertyForm.propertyType || 'hotel',
+        propertyType: isTent ? 'tent' : 'hotel',
+        dynamicCategory: categoryId,
         propertyName: propertyForm.propertyName,
         contactNumber: propertyForm.contactNumber,
         description: propertyForm.description,
@@ -664,7 +695,7 @@ const AddHotelWizard = () => {
         for (const rt of roomTypes) {
           const payload = {
             name: rt.name,
-            inventoryType: propertyForm.propertyType === 'tent' ? 'tent' : 'room',
+            inventoryType: isTent ? 'tent' : 'room',
             roomCategory: rt.roomCategory,
             maxAdults: Number(rt.maxAdults),
             maxChildren: Number(rt.maxChildren || 0),
@@ -692,8 +723,9 @@ const AddHotelWizard = () => {
         // Atomic Create
         propertyPayload.roomTypes = roomTypes.map(rt => ({
           name: rt.name,
-          inventoryType: propertyForm.propertyType === 'tent' ? 'tent' : 'room',
+          inventoryType: isTent ? 'tent' : 'room',
           roomCategory: rt.roomCategory,
+          bathroomType: rt.bathroomType,
           maxAdults: Number(rt.maxAdults),
           maxChildren: Number(rt.maxChildren || 0),
           totalInventory: Number(rt.totalInventory || 0),
@@ -703,7 +735,7 @@ const AddHotelWizard = () => {
           images: rt.images.filter(Boolean),
           amenities: rt.amenities
         }));
-        const res = await propertyService.create(propertyPayload);
+        const res = await propertyService.createProperty(propertyPayload);
         propId = res.property?._id;
         setCreatedProperty(res.property);
       }
@@ -789,7 +821,7 @@ const AddHotelWizard = () => {
       case 3: return 'Amenities';
       case 4: return 'Nearby Places';
       case 5: return 'Property Images';
-      case 6: return propertyForm.propertyType === 'tent' ? 'Tent Types' : 'Room Types';
+      case 6: return 'Room Types';
       case 7: return 'Property Rules';
       case 8: return 'Documents';
       case 9: return 'Review & Submit';
@@ -837,10 +869,10 @@ const AddHotelWizard = () => {
               {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 mb-1 block">Property Name</label>
+                  <label className="text-xs font-semibold text-gray-500 mb-1 block">{isTent ? 'Property / Camp Name' : 'Hotel Name'}</label>
                   <input
                     className="input w-full"
-                    placeholder={`e.g. ${propertyForm.propertyType === 'tent' ? 'Grand Canyon Campsite' : 'Grand Royal Hotel'}`}
+                    placeholder={isTent ? "e.g. Riverside Jungle Camp" : "e.g. Grand Royal Hotel"}
                     value={propertyForm.propertyName}
                     onChange={e => updatePropertyForm('propertyName', e.target.value)}
                   />
@@ -856,7 +888,7 @@ const AddHotelWizard = () => {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 mb-1 block">Detailed Description</label>
-                  <textarea className="input w-full h-24" placeholder={`Tell guests what makes your ${propertyForm.propertyType === 'tent' ? 'campsite' : 'hotel'} unique...`} value={propertyForm.description} onChange={e => updatePropertyForm('description', e.target.value)} />
+                  <textarea className="input w-full h-24" placeholder={isTent ? "Describe your campsite, tents, and experience..." : "Tell guests what makes your hotel unique..."} value={propertyForm.description} onChange={e => updatePropertyForm('description', e.target.value)} />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 mb-1 block">Contact Number (For Guest Inquiries)</label>
@@ -951,7 +983,7 @@ const AddHotelWizard = () => {
           {step === 3 && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {HOTEL_AMENITIES.map(am => {
+                {(isTent ? [...TENT_AMENITIES, ...HOTEL_AMENITIES] : HOTEL_AMENITIES).map(am => {
                   const isSelected = propertyForm.amenities.includes(am);
                   return (
                     <button
@@ -1221,10 +1253,10 @@ const AddHotelWizard = () => {
                   {roomTypes.length === 0 ? (
                     <div className="text-center py-10 px-6 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
                       <div className="w-12 h-12 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <BedDouble size={24} />
+                        {isTent ? <Tent size={24} /> : <BedDouble size={24} />}
                       </div>
-                      <p className="text-gray-500 font-medium">No {propertyForm.propertyType === 'tent' ? 'tent' : 'room'} types added yet</p>
-                      <p className="text-xs text-gray-400 mt-1">Add details for atleast one {propertyForm.propertyType === 'tent' ? 'tent' : 'room'} type.</p>
+                      <p className="text-gray-500 font-medium">No {isTent ? 'tents/units' : 'room types'} added yet</p>
+                      <p className="text-xs text-gray-400 mt-1">Add details for at least one {isTent ? 'tent' : 'room type'}.</p>
                     </div>
                   ) : (
                     <div className="grid gap-4">
@@ -1232,7 +1264,7 @@ const AddHotelWizard = () => {
                         <div key={rt.id || index} className="p-4 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
                           <div className="flex justify-between items-start mb-2">
                             <div>
-                              <h3 className="font-bold text-gray-900">{rt.name || `${propertyForm.propertyType === 'tent' ? 'Tent' : 'Room'} Type ${index + 1}`}</h3>
+                              <h3 className="font-bold text-gray-900">{rt.name || (isTent ? `Tent ${index + 1}` : `Room Type ${index + 1}`)}</h3>
                               <div className="text-xs text-gray-500 font-medium mt-0.5">
                                 Inventory: <span className="text-gray-900">{rt.totalInventory}</span> · Capacity: <span className="text-gray-900">{rt.maxAdults}A, {rt.maxChildren}C</span>
                               </div>
@@ -1268,7 +1300,7 @@ const AddHotelWizard = () => {
                     className="w-full py-4 border border-emerald-200 text-emerald-700 bg-emerald-50/50 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-50 transition-colors"
                   >
                     <Plus size={20} />
-                    Add {propertyForm.propertyType === 'tent' ? 'Tent' : 'Room'} Type
+                    {isTent ? 'Add Tent' : 'Add Room Type'}
                   </button>
                 </div>
               )}
@@ -1277,7 +1309,7 @@ const AddHotelWizard = () => {
                 <div className="bg-white rounded-2xl border border-emerald-100 shadow-lg overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div className="px-4 py-3 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
                     <span className="font-bold text-emerald-800 text-sm">
-                      {editingRoomTypeIndex === -1 || editingRoomTypeIndex == null ? `Add ${propertyForm.propertyType === 'tent' ? 'Tent' : 'Room'} Type` : `Edit ${propertyForm.propertyType === 'tent' ? 'Tent' : 'Room'} Type`}
+                      {editingRoomTypeIndex === -1 || editingRoomTypeIndex == null ? (isTent ? 'Add Tent' : 'Add Room Type') : (isTent ? 'Edit Tent' : 'Edit Room Type')}
                     </span>
                     <button onClick={cancelEditRoomType} className="text-emerald-600 hover:bg-emerald-100 p-1 rounded-md">
                       <span className="text-xs font-bold">Close</span>
@@ -1286,14 +1318,45 @@ const AddHotelWizard = () => {
 
                   <div className="p-4 space-y-4">
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-500">Name</label>
+                      <label className="text-xs font-semibold text-gray-500">{isTent ? 'Tent Name' : 'Name'}</label>
                       <input
                         className="input w-full"
-                        placeholder={`e.g. ${propertyForm.propertyType === 'tent' ? 'Luxury Dome Tent' : 'Deluxe Suite'}`}
+                        placeholder={isTent ? "e.g. Riverside Dome Tent" : "e.g. Deluxe Suite"}
                         value={editingRoomType.name}
                         onChange={e => setEditingRoomType(prev => ({ ...prev, name: e.target.value }))}
                       />
                     </div>
+
+                    {isTent && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500">Tent Type</label>
+                          <select
+                            className="input w-full"
+                            value={editingRoomType.roomCategory || ''}
+                            onChange={e => setEditingRoomType(prev => ({ ...prev, roomCategory: e.target.value }))}
+                          >
+                            <option value="">Select Type</option>
+                            {TENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500">Bathroom</label>
+                          <select
+                            className="input w-full"
+                            // reusing 'inventoryType' or just storing in structure details in submit?
+                            // Ideally we should add 'subCategory' to roomType schema as planned.
+                            // For now, let's use 'description' or similar if needed, or better yet, assume backend handles extra fields 
+                            // if we add them to the object.
+                            value={editingRoomType.bathroomType || ''}
+                            onChange={e => setEditingRoomType(prev => ({ ...prev, bathroomType: e.target.value }))}
+                          >
+                            <option value="">Select Bathroom</option>
+                            {BATHROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
@@ -1301,7 +1364,7 @@ const AddHotelWizard = () => {
                         <input className="input w-full" type="number" value={editingRoomType.pricePerNight} onChange={e => setEditingRoomType(prev => ({ ...prev, pricePerNight: e.target.value }))} />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500">Total Rooms</label>
+                        <label className="text-xs font-semibold text-gray-500">{isTent ? 'Total Units' : 'Total Rooms'}</label>
                         <input className="input w-full" type="number" value={editingRoomType.totalInventory} onChange={e => setEditingRoomType(prev => ({ ...prev, totalInventory: e.target.value }))} />
                       </div>
                     </div>
@@ -1330,7 +1393,7 @@ const AddHotelWizard = () => {
 
                     <div className="space-y-2 pt-2 border-t border-gray-100">
                       <div className="flex justify-between items-center">
-                        <label className="text-xs font-semibold text-gray-500">Room Photos</label>
+                        <label className="text-xs font-semibold text-gray-500">{isTent ? 'Tent Photos' : 'Room Photos'}</label>
                         <span className="text-[10px] text-gray-400">{(editingRoomType.images || []).filter(Boolean).length} / 3 min</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -1371,7 +1434,7 @@ const AddHotelWizard = () => {
 
                     <div className="flex gap-3 pt-4">
                       <button type="button" onClick={cancelEditRoomType} className="flex-1 py-3 text-gray-600 font-semibold bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
-                      <button type="button" onClick={saveRoomType} className="flex-1 py-3 text-white font-bold bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 transition-all transform active:scale-95">Save Room</button>
+                      <button type="button" onClick={saveRoomType} className="flex-1 py-3 text-white font-bold bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-200 transition-all transform active:scale-95">{isTent ? 'Save Tent' : 'Save Room'}</button>
                     </div>
                   </div>
                 </div>
@@ -1413,179 +1476,249 @@ const AddHotelWizard = () => {
 
                 <div className="space-y-2 pt-2 border-t border-gray-100">
                   <label className="text-xs font-semibold text-gray-500">House Rules</label>
-                  <div className="flex flex-wrap gap-2">
-                    {HOUSE_RULES_OPTIONS.map(r => {
-                      const isSelected = propertyForm.houseRules.includes(r);
-                      return (
+                  <div className="space-y-4">
+                    <label className="block text-sm font-bold text-gray-700">Property Rules</label>
+                    <div className="space-y-2">
+                      {HOUSE_RULES_OPTIONS.map((rule) => (
                         <button
-                          key={r}
-                          type="button"
+                          key={rule}
                           onClick={() => {
-                            const has = propertyForm.houseRules.includes(r);
-                            updatePropertyForm('houseRules', has ? propertyForm.houseRules.filter(x => x !== r) : [...propertyForm.houseRules, r]);
+                            const newRules = propertyForm.houseRules.includes(rule)
+                              ? propertyForm.houseRules.filter(r => r !== rule)
+                              : [...propertyForm.houseRules, rule];
+                            updatePropertyForm('houseRules', newRules);
                           }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'}`}
-                        >
-                          {r}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 8 && (
-            <div className="space-y-6">
-              {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{error}</div>}
-
-              <div className="space-y-4">
-                <div className="text-sm font-semibold text-gray-700">Please provide the following documents</div>
-                <div className="grid gap-3">
-                  {propertyForm.documents.map((doc, idx) => (
-                    <div key={idx} className="p-4 border border-gray-200 rounded-2xl bg-white hover:border-emerald-200 transition-colors shadow-sm">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <div className="font-bold text-gray-900">{doc.name}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">Optional document</div>
-                        </div>
-                        {doc.fileUrl ? (
-                          <div className="bg-emerald-50 text-emerald-700 p-1.5 rounded-full"><CheckCircle size={18} /></div>
-                        ) : (
-                          <div className="bg-gray-100 text-gray-400 p-1.5 rounded-full"><FileText size={18} /></div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => isFlutter
-                            ? handleCameraUpload(`doc_${idx}`, url => {
-                              const next = [...propertyForm.documents];
-                              next[idx].fileUrl = url;
-                              updatePropertyForm('documents', next);
-                            })
-                            : documentInputRefs.current[idx]?.click()
-                          }
-                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-bold transition-all ${doc.fileUrl
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                            : 'border-gray-300 bg-gray-50 text-gray-600 hover:bg-white hover:border-emerald-400 hover:text-emerald-600'
+                          className={`w-full p-3 rounded-xl border text-left text-sm font-medium transition-all flex items-center justify-between ${propertyForm.houseRules.includes(rule)
+                            ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-200'
                             }`}
                         >
-                          {uploading === `doc_${idx}` ? (
-                            <><Loader2 size={16} className="animate-spin" /> Uploading...</>
-                          ) : doc.fileUrl ? (
-                            <>Change File</>
-                          ) : (
-                            <><Plus size={16} /> Upload</>
-                          )}
+                          {rule}
+                          {propertyForm.houseRules.includes(rule) && <CheckCircle size={16} />}
                         </button>
-                        {doc.fileUrl && (
-                          <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="p-2.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors border border-gray-200 hover:border-emerald-200 bg-white">
-                            <Search size={18} />
-                          </a>
-                        )}
-                      </div>
-
-                      <input
-                        type="file"
-                        className="hidden"
-                        ref={el => (documentInputRefs.current[idx] = el)}
-                        onChange={e => {
-                          const file = e.target.files[0];
-                          if (!file) return;
-                          uploadImages([file], `doc_${idx}`, urls => {
-                            if (urls[0]) {
-                              const updated = [...propertyForm.documents];
-                              updated[idx] = { ...updated[idx], fileUrl: urls[0] };
-                              updatePropertyForm('documents', updated);
-                            }
-                          });
-                          e.target.value = '';
-                        }}
-                      />
+                      ))}
                     </div>
-                  ))}
+
+                    {/* Tent Safety Section */}
+                    {isTent && (
+                      <div className="mt-6 space-y-3 pt-4 border-t border-gray-100">
+                        {TENT_SAFETY.map((safety) => (
+                          <button
+                            key={safety}
+                            onClick={() => {
+                              // We'll store safety features in amenities for now to simplify schema
+                              // or better, in houseRules if appropriate, but amenities is better for search
+                              const newAmenities = propertyForm.amenities.includes(safety)
+                                ? propertyForm.amenities.filter(a => a !== safety)
+                                : [...propertyForm.amenities, safety];
+                              updatePropertyForm('amenities', newAmenities);
+                            }}
+                            className={`w-full p-3 rounded-xl border text-left text-sm font-medium transition-all flex items-center justify-between ${propertyForm.amenities.includes(safety)
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                              : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-200'
+                              }`}
+                          >
+                            {safety}
+                            {propertyForm.amenities.includes(safety) && <CheckCircle size={16} />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {step === 9 && (
-            <div className="space-y-6">
-              <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 flex gap-3">
-                <div className="bg-emerald-100 text-emerald-700 p-2 rounded-full h-fit"><CheckCircle size={20} /></div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Review Compliance</h3>
-                  <p className="text-xs text-gray-600 mt-1">Please review the details below carefully before submitting. Ensuring accurate information helps in faster approval.</p>
-                </div>
-              </div>
+          {
+            step === 8 && (
+              <div className="space-y-6">
+                {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{error}</div>}
 
-              {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{error}</div>}
-
-              <div className="space-y-4">
-                <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">{propertyForm.propertyType === 'tent' ? 'Campsite Details' : 'Property Details'}</h3>
-                  <div className="space-y-1">
-                    <div className="text-lg font-bold text-emerald-900">{propertyForm.propertyName || 'No Name'}</div>
-                    <div className="text-sm text-gray-600 flex items-start gap-1">
-                      <MapPin size={14} className="mt-0.5 shrink-0" /> {propertyForm.address.fullAddress || 'No Address'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">{propertyForm.propertyType === 'tent' ? 'Tent Types' : 'Room Types'} ({roomTypes.length})</h3>
-                  {roomTypes.length > 0 ? (
-                    <div className="space-y-2">
-                      {roomTypes.map((rt, i) => (
-                        <div key={i} className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600 font-medium">{rt.name}</span>
-                          <span className="font-bold text-gray-900">₹{rt.pricePerNight}</span>
+                <div className="space-y-4">
+                  <div className="text-sm font-semibold text-gray-700">Please provide the following documents</div>
+                  <div className="grid gap-3">
+                    {propertyForm.documents.map((doc, idx) => (
+                      <div key={idx} className="p-4 border border-gray-200 rounded-2xl bg-white hover:border-emerald-200 transition-colors shadow-sm">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="font-bold text-gray-900">{doc.name}</div>
+                            <div className="text-xs text-gray-400 mt-0.5">Optional document</div>
+                          </div>
+                          {doc.fileUrl ? (
+                            <div className="bg-emerald-50 text-emerald-700 p-1.5 rounded-full"><CheckCircle size={18} /></div>
+                          ) : (
+                            <div className="bg-gray-100 text-gray-400 p-1.5 rounded-full"><FileText size={18} /></div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  ) : <div className="text-xs text-red-500 font-medium bg-red-50 p-2 rounded-lg">No {propertyForm.propertyType === 'tent' ? 'tent' : 'room'} types added!</div>}
-                </div>
 
-                <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">Documents ({propertyForm.documents.filter(d => d.fileUrl).length}/{propertyForm.documents.length})</h3>
-                  <div className="space-y-2">
-                    {propertyForm.documents.map((doc, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          {doc.fileUrl ? <CheckCircle size={14} className="text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-gray-300 bg-gray-50"></div>}
-                          <span className={doc.fileUrl ? 'text-gray-700' : 'text-gray-500'}>{doc.name}</span>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => isFlutter
+                              ? handleCameraUpload(`doc_${idx}`, url => {
+                                const next = [...propertyForm.documents];
+                                next[idx].fileUrl = url;
+                                updatePropertyForm('documents', next);
+                              })
+                              : documentInputRefs.current[idx]?.click()
+                            }
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-bold transition-all ${doc.fileUrl
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              : 'border-gray-300 bg-gray-50 text-gray-600 hover:bg-white hover:border-emerald-400 hover:text-emerald-600'
+                              }`}
+                          >
+                            {uploading === `doc_${idx}` ? (
+                              <><Loader2 size={16} className="animate-spin" /> Uploading...</>
+                            ) : doc.fileUrl ? (
+                              <>Change File</>
+                            ) : (
+                              <><Plus size={16} /> Upload</>
+                            )}
+                          </button>
+                          {doc.fileUrl && (
+                            <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="p-2.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors border border-gray-200 hover:border-emerald-200 bg-white">
+                              <Search size={18} />
+                            </a>
+                          )}
                         </div>
-                        <span className="text-xs text-gray-400">{doc.fileUrl ? 'Attached' : 'Optional'}</span>
+
+                        <input
+                          type="file"
+                          className="hidden"
+                          ref={el => (documentInputRefs.current[idx] = el)}
+                          onChange={e => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            uploadImages([file], `doc_${idx}`, urls => {
+                              if (urls[0]) {
+                                const updated = [...propertyForm.documents];
+                                updated[idx] = { ...updated[idx], fileUrl: urls[0] };
+                                updatePropertyForm('documents', updated);
+                              }
+                            });
+                            e.target.value = '';
+                          }}
+                        />
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )
+          }
 
-          {step === 10 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
-              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center transition-all animate-bounce">
-                <CheckCircle size={48} />
+          {
+            step === 3 && (
+              <div className="space-y-6">
+                <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 flex gap-3">
+                  <div className="bg-emerald-100 text-emerald-700 p-2 rounded-full h-fit"><CheckCircle size={20} /></div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">{isTent ? 'Camping Amenities' : 'Property Amenities'}</h3>
+                    <p className="text-xs text-gray-600 mt-1">Select all the amenities available at your {isTent ? 'campsite' : 'property'}.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {(isTent ? [...TENT_AMENITIES, ...HOTEL_AMENITIES] : HOTEL_AMENITIES).map((amenity) => (
+                    <button
+                      key={amenity}
+                      onClick={() => {
+                        const newAmenities = propertyForm.amenities.includes(amenity)
+                          ? propertyForm.amenities.filter(a => a !== amenity)
+                          : [...propertyForm.amenities, amenity];
+                        updatePropertyForm('amenities', newAmenities);
+                      }}
+                      className={`p-3 rounded-xl border text-left text-sm font-medium transition-all ${propertyForm.amenities.includes(amenity)
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-200'
+                        }`}
+                    >
+                      {amenity}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2">
-                <h2 className="text-3xl font-extrabold text-gray-900">Registration Submitted!</h2>
-                <p className="text-gray-500 max-w-sm mx-auto">Your property registration has been sent for verification. Our team will review it and get back to you shortly.</p>
+            )
+          }
+          {
+            step === 9 && (
+              <div className="space-y-6">
+                <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 flex gap-3">
+                  <div className="bg-emerald-100 text-emerald-700 p-2 rounded-full h-fit"><CheckCircle size={20} /></div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">Review Compliance</h3>
+                    <p className="text-xs text-gray-600 mt-1">Please review the details below carefully before submitting. Ensuring accurate information helps in faster approval.</p>
+                  </div>
+                </div>
+
+                {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{error}</div>}
+
+                <div className="space-y-4">
+                  <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">{isTent ? 'Campsite Details' : 'Property Details'}</h3>
+                    <div className="space-y-1">
+                      <div className="text-lg font-bold text-emerald-900">{propertyForm.propertyName || (isTent ? 'No Camp Name' : 'No Name')}</div>
+                      <div className="text-sm text-gray-600 flex items-start gap-1">
+                        <MapPin size={14} className="mt-0.5 shrink-0" /> {propertyForm.address.fullAddress || 'No Address'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">{isTent ? 'Tent / Unit Types' : 'Room Types'} ({roomTypes.length})</h3>
+                    {roomTypes.length > 0 ? (
+                      <div className="space-y-2">
+                        {roomTypes.map((rt, i) => (
+                          <div key={i} className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 font-medium">{rt.name}</span>
+                            <span className="font-bold text-gray-900">₹{rt.pricePerNight}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <div className="text-xs text-red-500 font-medium bg-red-50 p-2 rounded-lg">No {isTent ? 'tent types' : 'room types'} added!</div>}
+                  </div>
+
+                  <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">Documents ({propertyForm.documents.filter(d => d.fileUrl).length}/{propertyForm.documents.length})</h3>
+                    <div className="space-y-2">
+                      {propertyForm.documents.map((doc, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            {doc.fileUrl ? <CheckCircle size={14} className="text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-gray-300 bg-gray-50"></div>}
+                            <span className={doc.fileUrl ? 'text-gray-700' : 'text-gray-500'}>{doc.name}</span>
+                          </div>
+                          <span className="text-xs text-gray-400">{doc.fileUrl ? 'Attached' : 'Optional'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => navigate('/hotel/properties')}
-                className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95"
-              >
-                Go to My Properties
-              </button>
-            </div>
-          )}
-        </div>
-      </main>
+            )
+          }
+
+          {
+            step === 10 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
+                <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center transition-all animate-bounce">
+                  <CheckCircle size={48} />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-extrabold text-gray-900">Registration Submitted!</h2>
+                  <p className="text-gray-500 max-w-sm mx-auto">Your property registration has been sent for verification. Our team will review it and get back to you shortly.</p>
+                </div>
+                <button
+                  onClick={() => navigate('/hotel/properties')}
+                  className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95"
+                >
+                  Go to My Properties
+                </button>
+              </div>
+            )
+          }
+        </div >
+      </main >
 
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 md:px-6 z-40 bg-white/80 backdrop-blur-md">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
@@ -1620,8 +1753,8 @@ const AddHotelWizard = () => {
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-    </div>
+    </div >
   );
 };
 
-export default AddHotelWizard;
+export default AddDynamicWizard;

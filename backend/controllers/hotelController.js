@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { uploadToCloudinary, uploadBase64ToCloudinary } from '../utils/cloudinary.js';
+import { uploadToCloudinary, uploadBase64ToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
 
 const mapAddressComponents = (components) => {
   const get = (type) => {

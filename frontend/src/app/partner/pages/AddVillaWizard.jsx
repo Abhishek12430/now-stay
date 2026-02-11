@@ -1150,9 +1150,9 @@ const AddVillaWizard = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Cover Image</label>
-                  <button
+                  <div
                     onClick={() => !uploading && (isFlutter ? handleCameraUpload('cover', u => updatePropertyForm('coverImage', u)) : coverImageFileInputRef.current?.click())}
-                    className="w-full aspect-video sm:aspect-[21/9] rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center gap-3 overflow-hidden group hover:border-emerald-400 hover:bg-emerald-50/10 transition-all relative"
+                    className="w-full aspect-video sm:aspect-[21/9] rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center gap-3 overflow-hidden group hover:border-emerald-400 hover:bg-emerald-50/10 transition-all relative cursor-pointer"
                   >
                     {uploading === 'cover' ? (
                       <div className="flex flex-col items-center gap-2 text-emerald-600">
@@ -1183,7 +1183,7 @@ const AddVillaWizard = () => {
                         </div>
                       </>
                     )}
-                  </button>
+                  </div>
                   <input ref={coverImageFileInputRef} type="file" accept="image/*" className="hidden" onChange={e => uploadImages(e.target.files, 'cover', u => updatePropertyForm('coverImage', u[0]))} />
                 </div>
 

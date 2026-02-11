@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Home, Users, BedDouble, ArrowLeft, ChevronRight, X } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { categoryService } from '../../../services/categoryService';
 
 const PartnerJoinPropertyType = () => {
   const navigate = useNavigate();
 
-  const propertyTypes = [
+  const staticTypes = [
     {
       key: 'hotel',
       label: 'Hotel',
@@ -62,6 +64,29 @@ const PartnerJoinPropertyType = () => {
     },
   ];
 
+  const [allTypes, setAllTypes] = useState(staticTypes);
+
+  useEffect(() => {
+    const fetchDynamicCategories = async () => {
+      try {
+        const categories = await categoryService.getActiveCategories();
+        const dynamicTypes = categories.map(cat => ({
+          key: cat._id,
+          label: cat.displayName,
+          description: cat.description || 'Discover our unique stays',
+          badge: cat.badge || 'New',
+          icon: LucideIcons[cat.icon] || LucideIcons.Star,
+          route: `/hotel/join-dynamic/${cat._id}`,
+          color: 'bg-teal-50 text-teal-600' // Use teal to differentiate
+        }));
+        setAllTypes([...staticTypes, ...dynamicTypes]);
+      } catch (error) {
+        console.error("Failed to load dynamic categories", error);
+      }
+    };
+    fetchDynamicCategories();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
@@ -83,12 +108,12 @@ const PartnerJoinPropertyType = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {propertyTypes.map((item) => {
+          {allTypes.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.key}
-                onClick={() => navigate(item.route)}
+                onClick={() => navigate(item.route, { state: { categoryName: item.label } })}
                 className="group relative flex items-start gap-4 p-4 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-emerald-200 transition-all duration-200 text-left active:scale-[0.98]"
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${item.color}`}>
