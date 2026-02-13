@@ -114,6 +114,7 @@ import hotelRoutes from './routes/hotelRoutes.js';
 import referralRoutes from './routes/referralRoutes.js';
 import faqRoutes from './routes/faqRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
+import subscriptionRoutes from './routes/subscriptionRoutes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -131,6 +132,7 @@ app.use('/api/hotels', hotelRoutes);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

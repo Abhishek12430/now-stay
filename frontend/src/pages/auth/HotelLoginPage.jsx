@@ -136,9 +136,9 @@ const HotelLoginPage = () => {
             {/* Top Bar - Centered Logo */}
             <header className="px-6 pt-0 pb-2 flex justify-center items-center">
                 <div className="flex items-center justify-center">
-                    <div className="flex flex-col items-center leading-tight">
+                    <div className="flex flex-col items-start leading-tight">
                         <span className="text-4xl font-black tracking-tighter text-[#111827] flex items-center gap-1">
-                            NOW<span className="text-[#004F4D]">STAY</span>
+                            NOW<span className="text-[#004F4D]">STAY.in</span>
                         </span>
                         <div className="h-1 w-10 bg-[#004F4D] rounded-full -mt-0.5"></div>
                     </div>

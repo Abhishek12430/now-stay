@@ -99,7 +99,12 @@ const AdminLogin = () => {
                         transition={{ type: "spring", delay: 0.2 }}
                         className="inline-block mb-4"
                     >
-                        <img src={logo} alt="Stay Now Admin" className="w-32 h-auto filter brightness-0 invert" />
+                        <div className="flex flex-col items-start leading-tight">
+                            <span className="text-4xl font-black tracking-tighter text-white flex items-center">
+                                NOW<span className="text-emerald-500">STAY.in</span>
+                            </span>
+                            <div className="h-1 w-8 bg-emerald-500 rounded-full mt-1"></div>
+                        </div>
                     </motion.div>
                     <h1 className="text-3xl font-bold text-white">Admin Portal</h1>
                     <p className="text-gray-400 mt-2">Secure access to platform management</p>
@@ -126,7 +131,7 @@ const AdminLogin = () => {
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="admin@staynow.in"
+                                    placeholder="eg:admin@staynow.in"
                                     className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 text-white placeholder-gray-400 rounded-xl focus:ring-2 focus:ring-white/50 focus:border-transparent outline-none transition-all"
                                     required
                                 />

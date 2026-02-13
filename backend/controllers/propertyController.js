@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Property from '../models/Property.js';
 import RoomType from '../models/RoomType.js';
 import PropertyDocument from '../models/PropertyDocument.js';
+import Partner from '../models/Partner.js';
 import { PROPERTY_DOCUMENTS } from '../config/propertyDocumentRules.js';
 import emailService from '../services/emailService.js';
 import User from '../models/User.js'; // Needed to find Admins? Or Admin model
@@ -20,6 +21,42 @@ const notifyAdminOfNewProperty = async (property) => {
 
 export const createProperty = async (req, res) => {
   try {
+    // --- SUBSCRIPTION GUARD: Check if partner can add more properties ---
+    const partner = await Partner.findById(req.user._id).populate('subscription.planId');
+    if (!partner) return res.status(404).json({ message: 'Partner not found' });
+
+    const { subscription } = partner;
+
+    // Check if subscription is active and not expired
+    const isSubscriptionActive =
+      subscription?.status === 'active' &&
+      subscription?.expiryDate &&
+      new Date(subscription.expiryDate) > new Date();
+
+    if (!isSubscriptionActive) {
+      return res.status(403).json({
+        message: 'No active subscription. Please purchase a subscription plan to add properties.',
+        requiresSubscription: true
+      });
+    }
+
+    // Check if partner has reached property limit
+    const currentPropertyCount = await Property.countDocuments({
+      partnerId: req.user._id,
+      status: { $ne: 'deleted' } // Don't count deleted properties
+    });
+
+    const maxAllowed = subscription.planId?.maxProperties || 0;
+
+    if (currentPropertyCount >= maxAllowed) {
+      return res.status(403).json({
+        message: `Property limit reached. Your plan allows ${maxAllowed} properties. Please upgrade your subscription.`,
+        limitReached: true,
+        currentCount: currentPropertyCount,
+        maxAllowed: maxAllowed
+      });
+    }
+
     const { propertyName, contactNumber, propertyType, description, shortDescription, coverImage, propertyImages, amenities, address, location, nearbyPlaces, checkInTime, checkOutTime, cancellationPolicy, houseRules, documents, roomTypes, pgType, hostelType, hostLivesOnProperty, familyFriendly, resortType, activities, hotelCategory, starRating } = req.body;
     if (!propertyName || !propertyType || !coverImage) return res.status(400).json({ message: 'Missing required fields' });
     const lowerType = propertyType.toLowerCase();
@@ -100,6 +137,10 @@ export const createProperty = async (req, res) => {
     if (doc.status === 'pending') {
       notifyAdminOfNewProperty(doc).catch(e => console.error(e));
     }
+
+    // INCREMENT SUBSCRIPTION COUNTER: Update propertiesAdded count
+    partner.subscription.propertiesAdded = (partner.subscription.propertiesAdded || 0) + 1;
+    await partner.save();
 
     res.status(201).json({ success: true, property: doc });
   } catch (e) {

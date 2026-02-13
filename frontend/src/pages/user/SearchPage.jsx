@@ -36,7 +36,8 @@ const SearchPage = () => {
         { id: 'resort', label: 'Resort' },
         { id: 'homestay', label: 'Homestay' },
         { id: 'pg', label: 'PG' },
-        { id: 'hostel', label: 'Hostel' }
+        { id: 'hostel', label: 'Hostel' },
+        { id: 'tent', label: 'Tent' }
     ]);
 
     useEffect(() => {
@@ -44,13 +45,18 @@ const SearchPage = () => {
             try {
                 const res = await api.get('/categories/active');
                 if (res.data) {
-                    const dynamic = res.data.map(cat => ({
-                        id: cat._id,
-                        label: cat.displayName,
-                        isDynamic: true
-                    }));
                     setPropertyTypes(prev => {
                         const staticTypes = prev.filter(p => !p.isDynamic);
+                        // Create a set of normalized static labels for easy lookup
+                        const staticLabels = new Set(staticTypes.map(t => t.label.toLowerCase()));
+
+                        const dynamic = res.data
+                            .filter(cat => !staticLabels.has(cat.displayName.toLowerCase()))
+                            .map(cat => ({
+                                id: cat._id,
+                                label: cat.displayName,
+                                isDynamic: true
+                            }));
                         return [...staticTypes, ...dynamic];
                     });
                 }

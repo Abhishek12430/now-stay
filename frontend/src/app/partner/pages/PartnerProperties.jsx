@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, MapPin, Pencil, PlusCircle, Trash2, Eye } from 'lucide-react';
+import { Building2, MapPin, Pencil, PlusCircle, Trash2, Eye, AlertCircle, Lock } from 'lucide-react';
 import { propertyService } from '../../../services/apiService';
+import subscriptionService from '../../../services/subscriptionService';
 import PartnerHeader from '../components/PartnerHeader';
+import { toast } from 'react-hot-toast';
 
 const PartnerProperties = () => {
   const navigate = useNavigate();
@@ -11,6 +13,8 @@ const PartnerProperties = () => {
   const [propertiesByType, setPropertiesByType] = useState({});
   const [propertyToDelete, setPropertyToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const fetchProperties = async () => {
     setLoading(true);
@@ -31,9 +35,51 @@ const PartnerProperties = () => {
     }
   };
 
+  const fetchSubscription = async () => {
+    try {
+      const data = await subscriptionService.getCurrentSubscription();
+      if (data.success) {
+        setSubscription(data.subscription);
+      }
+    } catch (e) {
+      console.error('Failed to fetch subscription:', e);
+    }
+  };
+
   useEffect(() => {
     fetchProperties();
+    fetchSubscription();
   }, []);
+
+  const checkSubscriptionLimit = () => {
+    // Check if subscription exists and is active
+    const isActive =
+      subscription?.status === 'active' &&
+      subscription?.expiryDate &&
+      new Date(subscription.expiryDate) > new Date();
+
+    if (!isActive) {
+      setShowSubscriptionModal(true);
+      return false;
+    }
+
+    // Check property limit
+    const totalProperties = Object.values(propertiesByType).reduce((sum, list) => sum + list.length, 0);
+    const maxAllowed = subscription?.planId?.maxProperties || 0;
+
+    if (totalProperties >= maxAllowed) {
+      toast.error(`Property limit reached! Your plan allows ${maxAllowed} properties.`);
+      setShowSubscriptionModal(true);
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleAddProperty = () => {
+    if (!checkSubscriptionLimit()) return;
+    navigate('/hotel/join');
+  };
 
   const handleEditProperty = (property) => {
     if (property.propertyType === 'hotel') {
@@ -97,7 +143,7 @@ const PartnerProperties = () => {
           </h2>
           <div className="flex gap-2">
             <button
-              onClick={() => navigate('/hotel/join')}
+              onClick={handleAddProperty}
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#004F4D] text-white text-[11px] font-bold uppercase tracking-wide active:scale-95"
             >
               <PlusCircle size={14} /> Add New
@@ -237,6 +283,45 @@ const PartnerProperties = () => {
                     ) : (
                       'Delete'
                     )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Subscription Modal */}
+      {showSubscriptionModal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-[999] backdrop-blur-sm transition-opacity" onClick={() => setShowSubscriptionModal(false)} />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-md px-4">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 text-teal-600">
+                  <Lock size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Subscription Required</h3>
+                <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                  {subscription?.status === 'active'
+                    ? `You've reached your property limit. Upgrade your plan to add more properties.`
+                    : `You need an active subscription to add properties. Choose a plan that fits your needs.`}
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => {
+                      setShowSubscriptionModal(false);
+                      navigate('/hotel/subscriptions');
+                    }}
+                    className="w-full px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-bold transition-colors shadow-lg"
+                  >
+                    View Subscription Plans
+                  </button>
+                  <button
+                    onClick={() => setShowSubscriptionModal(false)}
+                    className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-bold transition-colors"
+                  >
+                    Close
                   </button>
                 </div>
               </div>

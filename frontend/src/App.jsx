@@ -67,6 +67,7 @@ const AdminContactMessages = React.lazy(() => import('./app/admin/pages/AdminCon
 const AdminNotifications = React.lazy(() => import('./app/admin/pages/AdminNotifications'));
 const AdminFaqs = React.lazy(() => import('./app/admin/pages/AdminFaqs'));
 const AdminCategories = React.lazy(() => import('./app/admin/pages/AdminCategories'));
+const AdminSubscriptions = React.lazy(() => import('./app/admin/pages/AdminSubscriptions'));
 
 // Lazy Imports - Partner Pages
 const HotelLogin = React.lazy(() => import('./pages/auth/HotelLoginPage'));
@@ -102,6 +103,7 @@ const PartnerAbout = React.lazy(() => import('./app/partner/pages/PartnerAbout')
 const PartnerPrivacy = React.lazy(() => import('./app/partner/pages/PartnerPrivacy'));
 const PartnerContact = React.lazy(() => import('./app/partner/pages/PartnerContact'));
 const PartnerBankDetails = React.lazy(() => import('./app/partner/pages/PartnerBankDetails'));
+const PartnerSubscriptions = React.lazy(() => import('./app/partner/pages/PartnerSubscriptions'));
 
 // Lazy Imports - Layouts
 const HotelLayout = React.lazy(() => import('./layouts/HotelLayout'));
@@ -433,6 +435,7 @@ function App() {
                 <Route path="settings" element={<PartnerSettings />} />
                 <Route path="bank-details" element={<PartnerBankDetails />} />
                 <Route path="profile" element={<PartnerProfile />} />
+                <Route path="subscriptions" element={<PartnerSubscriptions />} />
               </Route>
             </Route>
 
@@ -462,6 +465,7 @@ function App() {
                 <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="faqs" element={<AdminFaqs />} />
                 <Route path="categories" element={<AdminCategories />} />
+                <Route path="subscriptions" element={<AdminSubscriptions />} />
               </Route>
             </Route>
 
